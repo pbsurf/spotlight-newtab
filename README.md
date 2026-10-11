@@ -1,4 +1,4 @@
-# Daily Image New Tab
+# spotlight-newtab
 
 Firefox extension that replaces the new tab page with a daily background image,
 from **Windows Spotlight** (Windows 11 desktop API), **Bing image of the day**,
@@ -26,7 +26,7 @@ or with web-ext:
 Raise `version` in `manifest.json` for each release (Firefox only installs a
 higher version over an existing one), then package from the repo root:
 
-    zip -r daily-image-newtab.xpi manifest.json background.js newtab.* options.* sources icons
+    zip -r spotlight-newtab.xpi manifest.json background.js newtab.* options.* sources icons
 
 ## Install permanently
 

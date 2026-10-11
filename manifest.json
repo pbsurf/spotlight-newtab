@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Daily Image New Tab",
+  "name": "spotlight-newtab",
   "version": "0.5.0",
-  "description": "Shows a daily image (Windows Spotlight or Bing) as the new tab background.",
+  "description": "New tab page with a daily background image from Windows Spotlight, Bing, or your own image URLs.",
   "browser_specific_settings": {
     "gecko": {
       "id": "spotlight-newtab@styluslabs.com",
