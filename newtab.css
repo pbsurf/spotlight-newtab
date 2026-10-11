@@ -1,0 +1,40 @@
+:root { color-scheme: dark; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 15px/1.4 system-ui, sans-serif; color: #fff; }
+#bg {
+  position: fixed; inset: 0;
+  background: center / cover no-repeat;
+  opacity: 0; transition: opacity .4s ease;
+}
+#bg.loaded { opacity: 1; }
+
+#clock {
+  position: fixed; top: 28%; width: 100%; text-align: center;
+  font-size: 96px; font-weight: 200; letter-spacing: 2px;
+  text-shadow: 0 2px 16px rgba(0,0,0,.5);
+  user-select: none;
+}
+
+footer {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: flex-end; gap: 16px;
+  padding: 48px 24px 18px;
+  background: linear-gradient(transparent, rgba(0,0,0,.6));
+}
+.text { flex: 1; min-width: 0; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
+h1 { margin: 0; font-size: 18px; font-weight: 600; }
+#caption, #copyright { margin: 2px 0 0; opacity: .85; font-size: 13px; }
+#description {
+  margin: 0; max-height: 0; max-width: 70ch; overflow: hidden; opacity: 0;
+  transition: max-height .3s ease, opacity .3s ease, margin .3s ease;
+}
+footer:hover #description { max-height: 12em; opacity: 1; margin: 6px 0; }
+
+.actions { display: flex; gap: 8px; align-items: center; }
+.actions a, .actions button {
+  color: #fff; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+  border-radius: 6px; padding: 6px 12px; font: inherit; text-decoration: none; cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.actions a:hover, .actions button:hover { background: rgba(255,255,255,.28); }
+#next.spinning { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
