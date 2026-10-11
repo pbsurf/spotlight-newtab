@@ -7,19 +7,27 @@
 </head>
 <body>
   <div id="bg"></div>
-  <div id="clock"></div>
-  <footer id="info" hidden>
-    <div class="text">
-      <h1 id="title"></h1>
-      <p id="caption"></p>
-      <p id="description"></p>
-      <p id="copyright"></p>
-    </div>
-    <div class="actions">
-      <a id="learn" target="_blank" rel="noopener" hidden>Learn more</a>
-      <button id="next" title="Get another image">↻</button>
-    </div>
-  </footer>
+
+  <nav id="shortcuts" hidden></nav>
+
+  <div id="info" popover>
+    <h1 id="title"></h1>
+    <p id="caption"></p>
+    <p id="description"></p>
+    <p id="copyright"></p>
+    <a id="learn" target="_blank" rel="noopener" hidden>Learn more</a>
+  </div>
+
+  <div class="corner left">
+    <button id="info-btn" popovertarget="info" title="About this image" hidden><i>i</i></button>
+  </div>
+  <div class="corner right">
+    <button id="toggle" title="Hide shortcuts">
+      <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+    </button>
+    <button id="next" title="Get another image">↻</button>
+  </div>
+
   <script src="newtab.js" type="module"></script>
 </body>
 </html>

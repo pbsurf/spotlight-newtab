@@ -1,5 +1,5 @@
 :root { color-scheme: dark; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 15px/1.4 system-ui, sans-serif; color: #fff; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 14px/1.4 system-ui, sans-serif; color: #fff; }
 #bg {
   position: fixed; inset: 0;
   background: center / cover no-repeat;
@@ -7,34 +7,59 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 
 }
 #bg.loaded { opacity: 1; }
 
-#clock {
-  position: fixed; top: 28%; width: 100%; text-align: center;
-  font-size: 96px; font-weight: 200; letter-spacing: 2px;
-  text-shadow: 0 2px 16px rgba(0,0,0,.5);
-  user-select: none;
+/* Shortcuts, laid out like Firefox's: 8 per row, centered in the upper part. */
+#shortcuts {
+  position: fixed; top: 22vh; left: 50%; transform: translateX(-50%);
+  display: grid; grid-template-columns: repeat(8, 96px); gap: 16px 12px;
+  max-width: calc(100vw - 32px);
+  transition: opacity .25s ease;
+}
+@media (max-width: 900px) { #shortcuts { grid-template-columns: repeat(4, 96px); } }
+#shortcuts.off { opacity: 0; pointer-events: none; }
+.tile {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  color: inherit; text-decoration: none;
+}
+.tile .icon {
+  width: 72px; height: 72px; border-radius: 12px;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.2);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  transition: background .15s ease, transform .15s ease;
+}
+.tile:hover .icon, .tile:focus-visible .icon { background: rgba(255,255,255,.32); transform: translateY(-2px); }
+.tile img { width: 32px; height: 32px; border-radius: 4px; }
+.tile .letter { font-size: 28px; font-weight: 500; text-transform: uppercase; }
+.tile .label {
+  max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12px; text-shadow: 0 1px 4px rgba(0,0,0,.8);
 }
 
-footer {
-  position: fixed; left: 0; right: 0; bottom: 0;
-  display: flex; align-items: flex-end; gap: 16px;
-  padding: 48px 24px 18px;
-  background: linear-gradient(transparent, rgba(0,0,0,.6));
+/* Corner buttons */
+.corner { position: fixed; bottom: 16px; display: flex; gap: 8px; }
+.corner.left { left: 16px; }
+.corner.right { right: 16px; }
+.corner button {
+  width: 34px; height: 34px; padding: 0; display: grid; place-items: center;
+  color: #fff; background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.25);
+  border-radius: 50%; font: 16px/1 system-ui, sans-serif; cursor: pointer;
+  backdrop-filter: blur(6px); opacity: .75; transition: opacity .15s, background .15s;
 }
-.text { flex: 1; min-width: 0; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
-h1 { margin: 0; font-size: 18px; font-weight: 600; }
-#caption, #copyright { margin: 2px 0 0; opacity: .85; font-size: 13px; }
-#description {
-  margin: 0; max-height: 0; max-width: 70ch; overflow: hidden; opacity: 0;
-  transition: max-height .3s ease, opacity .3s ease, margin .3s ease;
-}
-footer:hover #description { max-height: 12em; opacity: 1; margin: 6px 0; }
-
-.actions { display: flex; gap: 8px; align-items: center; }
-.actions a, .actions button {
-  color: #fff; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
-  border-radius: 6px; padding: 6px 12px; font: inherit; text-decoration: none; cursor: pointer;
-  backdrop-filter: blur(6px);
-}
-.actions a:hover, .actions button:hover { background: rgba(255,255,255,.28); }
+.corner button:hover { opacity: 1; background: rgba(0,0,0,.5); }
+#info-btn i { font: italic 600 18px/1 Georgia, "Times New Roman", serif; }
+#toggle.off { opacity: .45; }
 #next.spinning { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Caption panel, opened by the "i" button; click outside or Esc closes it. */
+#info {
+  inset: auto auto 60px 16px; margin: 0;
+  max-width: min(60ch, calc(100vw - 32px)); padding: 14px 16px;
+  color: #fff; background: rgba(20,20,20,.7); backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.2); border-radius: 10px;
+}
+#info h1 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+#info p { margin: 0 0 6px; }
+#caption, #copyright { opacity: .8; font-size: 12px; }
+#learn { color: #9cc9ff; }

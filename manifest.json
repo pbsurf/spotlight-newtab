@@ -17,7 +17,8 @@
   "permissions": [
     "storage",
     "alarms",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "topSites"
   ],
   "host_permissions": [
     "https://fd.api.iris.microsoft.com/*",

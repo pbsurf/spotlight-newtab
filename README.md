@@ -6,7 +6,8 @@ Pick the source in about:addons → the extension → Options.
 
 - A new image is fetched once per day (checked hourly, on startup, and when a new tab opens).
 - The image is stored in the extension's Cache Storage, so new tabs load instantly and work offline.
-- Hover the caption to see the description; ↻ fetches a different image now.
+- Shows the same shortcuts as Firefox's own new tab (pinned + frequently visited); the grid button hides them.
+- The italic "i" button shows the image title, description and credit; ↻ fetches a different image now.
 
 ## Try it
 
