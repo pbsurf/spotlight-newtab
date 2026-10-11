@@ -75,3 +75,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 
 #info p { margin: 0 0 6px; }
 #caption, #copyright { opacity: .8; font-size: 12px; }
 #learn { color: #9cc9ff; }
+#error { margin: 8px 0 0; color: #ffb4a8; font-size: 12px; }
+#info-btn { position: relative; }
+#info-btn.has-error::after {
+  content: ""; position: absolute; top: 1px; right: 1px;
+  width: 8px; height: 8px; border-radius: 50%; background: #ff6b5a;
+}

@@ -42,24 +42,40 @@ async function render(img) {
 
 const hostOf = (url) => new URL(url).hostname.replace(/^www\./, "");
 
-async function getSites(count) {
-  const sites = await browser.topSites.get({ newtab: true, includeFavicon: true });
-  if (sites.length >= count) return sites.slice(0, count);
-  // Firefox's list may be capped at its own row setting; top up from history.
-  const seen = new Set(sites.map((s) => hostOf(s.url)));
-  const more = await browser.topSites.get({ limit: count * 2, onePerDomain: true, includeFavicon: true });
-  for (const s of more) {
-    if (sites.length >= count) break;
-    if (seen.has(hostOf(s.url))) continue;
-    seen.add(hostOf(s.url));
-    sites.push(s);
-  }
-  return sites;
+// Like Firefox's shortURL: hostname without "www." and the public suffix
+// (approximated: last label, or the last two for e.g. "co.uk").
+function shortName(url) {
+  const host = hostOf(url);
+  const short = host.replace(/\.(?:(?:co|com|org|net|gov|ac|edu)\.[a-z]{2}|[a-z0-9-]+)$/i, "");
+  return short || host;
 }
 
-// The same list Firefox's own new tab shows (pinned + frequently visited).
-async function renderShortcuts(rows) {
-  const sites = await getSites(rows * 8);
+// Firefox's own shortcuts list, in its order, already capped at Firefox's own
+// rows setting. (`limit` still applies with `newtab: true` and defaults to 12,
+// so ask for the maximum.)
+//
+// Firefox labels each tile with the pinned site's custom label, else the short
+// hostname, but the API reports `label || page title` as the title. Custom labels
+// are found by comparing a pins+history list with a history-only one: a pinned
+// entry carries only its label (or nothing), never the page title.
+async function getSites() {
+  const opts = { limit: 100, includeSearchShortcuts: true };
+  const [sites, withPinned, history] = await Promise.all([
+    browser.topSites.get({ newtab: true, limit: 100, includeFavicon: true }),
+    browser.topSites.get({ ...opts, includePinned: true }),
+    browser.topSites.get(opts),
+  ]);
+  const historyTitles = new Map(history.map((s) => [s.url, s.title]));
+  const labels = new Map();
+  for (const s of withPinned) {
+    if (s.title && s.title !== historyTitles.get(s.url)) labels.set(s.url, s.title);
+  }
+  return sites.map((site) => ({ ...site, label: labels.get(site.url) || shortName(site.url) }));
+}
+
+// The same shortcuts Firefox's own new tab shows.
+async function renderShortcuts() {
+  const sites = await getSites();
   const nav = $("shortcuts");
   nav.replaceChildren(
     ...sites.map((site) => {
@@ -85,13 +101,24 @@ async function renderShortcuts(rows) {
 
       const label = document.createElement("span");
       label.className = "label";
-      label.textContent = host.split(".").slice(0, -1).join(".") || host;
+      label.textContent = site.label;
 
       a.append(icon, label);
       return a;
     })
   );
   nav.hidden = sites.length === 0;
+}
+
+// Last failed update (cleared by the background on the next success).
+function renderError(err) {
+  const el = $("error");
+  el.hidden = !err;
+  el.textContent = err
+    ? `Couldn't load a new image (${new Date(err.at).toLocaleString()}): ${err.message}`
+    : "";
+  $("info-btn").classList.toggle("has-error", !!err);
+  if (err) $("info-btn").hidden = false;
 }
 
 function applyShortcutsHidden(hidden) {
@@ -101,19 +128,20 @@ function applyShortcutsHidden(hidden) {
 }
 
 async function main() {
-  const { current, settings, hideShortcuts = false, shortcutRows = 1 } =
-    await browser.storage.local.get(["current", "settings", "hideShortcuts", "shortcutRows"]);
+  const { current, settings, hideShortcuts = false, lastError = null } =
+    await browser.storage.local.get(["current", "settings", "hideShortcuts", "lastError"]);
   applyShortcutsHidden(hideShortcuts);
-  renderShortcuts(shortcutRows).catch(console.error);
+  renderShortcuts().catch(console.error);
   await render(current);
+  renderError(lastError);
 
   browser.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;
     // Re-render whenever the background stores a new image (refresh, ↻, source switch).
     if (changes.current?.newValue) render(changes.current.newValue);
     // Keep the shortcuts toggle in sync across open tabs.
+    if (changes.lastError) renderError(changes.lastError.newValue ?? null);
     if (changes.hideShortcuts) applyShortcutsHidden(!!changes.hideShortcuts.newValue);
-    if (changes.shortcutRows) renderShortcuts(changes.shortcutRows.newValue ?? 1).catch(console.error);
   });
 
   // Stale, missing, or from another source? Ask the background to fetch.

@@ -35,7 +35,25 @@ async function pruneCache(keep) {
 }
 
 // Fetch a new image if we don't have one for today (or if forced).
-async function refresh({ force = false } = {}) {
+// Failures are recorded as `lastError` (shown in the new tab's info panel)
+// until the next successful update.
+async function refresh(opts) {
+  try {
+    return await update(opts);
+  } catch (e) {
+    const { settings } = await browser.storage.local.get("settings");
+    const source = settings?.source ?? "spotlight";
+    let message = e.message || String(e);
+    // fetch() reports blocked/unreachable hosts only as a generic TypeError.
+    if (e instanceof TypeError && source === "custom") {
+      message += " (site unreachable, or access not allowed: save the list again in Options)";
+    }
+    await browser.storage.local.set({ lastError: { message, source, at: Date.now() } });
+    throw e;
+  }
+}
+
+async function update({ force = false } = {}) {
   const { current, settings } = await browser.storage.local.get(["current", "settings"]);
   const sourceName = settings?.source ?? "spotlight";
   if (!force && current?.date === today() && current.source === sourceName) return current;
@@ -48,7 +66,7 @@ async function refresh({ force = false } = {}) {
   const next = { ...image, date: today(), fetchedAt: Date.now() };
   const keep = [next.imageUrl];
   if (current?.imageUrl) keep.push(current.imageUrl);
-  await browser.storage.local.set({ current: next, previous: current ?? null });
+  await browser.storage.local.set({ current: next, previous: current ?? null, lastError: null });
   await pruneCache(keep);
   return next;
 }

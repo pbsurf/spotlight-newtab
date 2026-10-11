@@ -34,7 +34,6 @@ function setStatus(text, isError = false) {
 
 (async () => {
   const settings = await getSettings();
-  const { shortcutRows = 1 } = await browser.storage.local.get("shortcutRows");
 
   const source = settings.source ?? "spotlight";
   for (const input of document.querySelectorAll('input[name="source"]')) {
@@ -69,10 +68,4 @@ function setStatus(text, isError = false) {
       setStatus(`Saved, but loading failed: ${e.message}`, true);
     }
   });
-
-  const rows = $("rows");
-  rows.value = String(shortcutRows);
-  rows.addEventListener("change", () =>
-    browser.storage.local.set({ shortcutRows: Number(rows.value) })
-  );
 })();
