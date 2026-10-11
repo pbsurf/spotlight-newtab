@@ -10,6 +10,8 @@
     #custom-urls { width: 100%; box-sizing: border-box; min-height: 7em; font: 12px/1.5 monospace; }
     #status { margin-left: 8px; font-size: 12px; }
     #status.error { color: #c00; }
+    .inline { margin-left: 10px; }
+    .inline.hint { margin-left: 10px; font-weight: normal; }
   </style>
 </head>
 <body>
@@ -19,7 +21,7 @@
   <label><input type="radio" name="source" value="bing"> Bing image of the day</label>
   <div class="hint">One image per day; ↻ picks one from the past week.</div>
   <label><input type="radio" name="source" value="custom"> Custom URLs</label>
-  <div class="hint">One per day in list order; ↻ picks another at random. Each URL is re-fetched daily, so a link that always serves the latest image (e.g. a webcam) works too.</div>
+  <div class="hint">In list order (random when changing hourly or every tab); ↻ picks another at random. Each URL is re-fetched whenever the image changes, so a link that always serves the latest image (e.g. a webcam) works too.</div>
   <div id="custom-box">
     <textarea id="custom-urls" spellcheck="false"
       placeholder="https://example.org/photo.jpg  Optional title&#10;https://example.org/other.png"></textarea>
@@ -27,8 +29,17 @@
     <button id="save">Save</button><span id="status"></span>
   </div>
 
-  <p><strong>Shortcuts</strong></p>
-  <div class="hint" style="margin-left:0">Configure at about:home</div>
+  <p><strong>Change image</strong>
+    <select id="interval" class="inline">
+      <option value="tab">Every new tab</option>
+      <option value="hourly">Hourly</option>
+      <option value="daily">Daily</option>
+      <option value="weekly">Weekly</option>
+      <option value="never">Never</option>
+    </select>
+  </p>
+
+  <p><strong>Shortcuts</strong><span class="inline hint">Configure at about:home</span></p>
   <script src="options.js"></script>
 </body>
 </html>

@@ -10,6 +10,21 @@ function today() {
   return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local time
 }
 
+const HOUR = 3600 * 1000;
+const daysBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / (24 * HOUR));
+
+// Whether `current` is still good for the "Change image" setting.
+// "tab": a new image for each new tab (fetched when a tab opens, shown in the next one).
+function isFresh(current, interval, newTab) {
+  switch (interval) {
+    case "tab": return !newTab;
+    case "hourly": return Date.now() - current.fetchedAt < HOUR;
+    case "weekly": return daysBetween(current.date, today()) < 7;
+    case "never": return true;
+    default: return current.date === today(); // daily
+  }
+}
+
 // Always re-fetched: a custom URL may serve a different image each time.
 async function cacheImage(url) {
   const res = await fetch(url, { cache: "no-cache" });
@@ -34,7 +49,7 @@ async function pruneCache(keep) {
   }
 }
 
-// Fetch a new image if we don't have one for today (or if forced).
+// Fetch a new image if the current one is due for a change (or if forced).
 // Failures are recorded as `lastError` (shown in the new tab's info panel)
 // until the next successful update.
 async function refresh(opts) {
@@ -53,14 +68,18 @@ async function refresh(opts) {
   }
 }
 
-async function update({ force = false } = {}) {
+async function update({ force = false, newTab = false } = {}) {
   const { current, settings } = await browser.storage.local.get(["current", "settings"]);
   const sourceName = settings?.source ?? "spotlight";
-  if (!force && current?.date === today() && current.source === sourceName) return current;
+  const interval = settings?.interval ?? "daily";
+  if (!force && current?.source === sourceName && isFresh(current, interval, newTab)) return current;
 
   const source = SOURCES[sourceName] ?? spotlight;
-  // A forced refresh on the same day means "give me a different one".
-  const image = await source.fetchLatest({ random: force && current?.date === today(), current });
+  // "Give me a different one": ↻ on the same day, or changing more often than
+  // daily (otherwise Bing and Custom URLs would return the same image again).
+  const random =
+    (force && current?.date === today()) || interval === "tab" || interval === "hourly";
+  const image = await source.fetchLatest({ random, current });
   await cacheImage(image.imageUrl);
 
   const next = { ...image, date: today(), fetchedAt: Date.now() };
@@ -71,7 +90,7 @@ async function update({ force = false } = {}) {
   return next;
 }
 
-// Run refreshes one at a time; unforced ones return early once today's image exists.
+// Run refreshes one at a time; unforced ones return early while the current image is fresh.
 let queue = Promise.resolve();
 function refreshOnce(opts) {
   const run = queue.then(() => refresh(opts));
@@ -82,16 +101,16 @@ function refreshOnce(opts) {
 browser.runtime.onInstalled.addListener(() => refreshOnce().catch(console.error));
 browser.runtime.onStartup.addListener(() => refreshOnce().catch(console.error));
 
-browser.alarms.create(ALARM, { periodInMinutes: 60 });
+browser.alarms.create(ALARM, { periodInMinutes: 15 });
 browser.alarms.onAlarm.addListener((a) => {
   if (a.name === ALARM) refreshOnce().catch(console.error);
 });
 
-// Switching source in the options page fetches from the new source right away.
+// Changing source or interval in the options page applies right away.
 browser.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.settings) refreshOnce().catch(console.error);
 });
 
 browser.runtime.onMessage.addListener((msg) => {
-  if (msg?.type === "refresh") return refreshOnce({ force: !!msg.force });
+  if (msg?.type === "refresh") return refreshOnce({ force: !!msg.force, newTab: !!msg.newTab });
 });

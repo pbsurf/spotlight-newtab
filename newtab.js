@@ -1,17 +1,60 @@
 const $ = (id) => document.getElementById(id);
-let blobUrl = null;
 
+// Cached copy as a blob: URL (caller revokes it), else the original URL.
 async function imageSrc(url) {
   try {
     const hit = await (await caches.open("images")).match(url);
-    if (hit) {
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
-      return (blobUrl = URL.createObjectURL(await hit.blob()));
-    }
+    if (hit) return URL.createObjectURL(await hit.blob());
   } catch (e) {
     console.warn("cache lookup failed", e);
   }
   return url; // fall back to network
+}
+
+const revoke = (src) => src.startsWith("blob:") && URL.revokeObjectURL(src);
+
+// Background layers, oldest first. The first image appears at once; later ones
+// (↻, source switch, daily update) cross-fade in on a new layer over the old.
+let layers = [];
+async function showImage(src, isCurrent) {
+  const pre = new Image();
+  pre.src = src;
+  try {
+    await pre.decode(); // avoid showing a half-decoded image
+    if (!isCurrent()) throw new Error("superseded");
+  } catch {
+    revoke(src);
+    return false;
+  }
+  const el = document.createElement("div");
+  el.className = "bg";
+  el.style.backgroundImage = `url("${src}")`;
+  const layer = { el, src };
+  const old = layers;
+  layers = [...old, layer];
+
+  const fade = old.length && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (old.length) old.at(-1).el.after(el);
+  else document.body.prepend(el);
+  if (!fade) return dropBelow(layer), true;
+
+  el.classList.add("fading");
+  el.getBoundingClientRect(); // commit opacity 0 so the transition runs
+  el.classList.add("in");
+  el.addEventListener("transitionend", () => dropBelow(layer), { once: true });
+  setTimeout(() => dropBelow(layer), 1000); // transitionend may not fire, e.g. in a hidden tab
+  return true;
+}
+
+// Remove (and free) every layer under `layer`, once it fully covers them.
+function dropBelow(layer) {
+  const i = layers.indexOf(layer);
+  if (i < 1) return;
+  for (const { el, src } of layers.slice(0, i)) {
+    el.remove();
+    revoke(src);
+  }
+  layers = layers.slice(i);
 }
 
 let renderSeq = 0;
@@ -19,14 +62,8 @@ async function render(img) {
   if (!img) return;
   const seq = ++renderSeq;
   const src = await imageSrc(img.imageUrl);
-  if (seq !== renderSeq) return; // a newer render started meanwhile
-  const bg = $("bg");
-  const pre = new Image();
-  pre.onload = () => {
-    bg.style.backgroundImage = `url("${src}")`;
-    bg.classList.add("loaded");
-  };
-  pre.src = src;
+  if (seq !== renderSeq) return revoke(src); // a newer render started meanwhile
+  if (!(await showImage(src, () => seq === renderSeq))) return;
 
   $("title").textContent = img.title;
   $("caption").textContent = img.caption;
@@ -135,21 +172,29 @@ async function main() {
   await render(current);
   renderError(lastError);
 
+  // In "every new tab" mode, opening a tab fetches the image for the *next* tab;
+  // open tabs keep theirs unless their own ↻ was clicked.
+  let interval = settings?.interval ?? "daily";
+  let shown = !!current;
+  let wantUpdate = false;
+
   browser.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;
-    // Re-render whenever the background stores a new image (refresh, ↻, source switch).
-    if (changes.current?.newValue) render(changes.current.newValue);
+    if (changes.settings) interval = changes.settings.newValue?.interval ?? "daily";
+    // Show a newly stored image (scheduled update, ↻, source switch).
+    const next = changes.current?.newValue;
+    if (next && (interval !== "tab" || !shown || wantUpdate)) {
+      shown = true;
+      wantUpdate = false;
+      render(next);
+    }
     // Keep the shortcuts toggle in sync across open tabs.
     if (changes.lastError) renderError(changes.lastError.newValue ?? null);
     if (changes.hideShortcuts) applyShortcutsHidden(!!changes.hideShortcuts.newValue);
   });
 
-  // Stale, missing, or from another source? Ask the background to fetch.
-  const today = new Date().toLocaleDateString("en-CA");
-  const source = settings?.source ?? "spotlight";
-  if (!current || current.date !== today || current.source !== source) {
-    browser.runtime.sendMessage({ type: "refresh" }).catch(console.error);
-  }
+  // The background decides whether the image is due for a change.
+  browser.runtime.sendMessage({ type: "refresh", newTab: true }).catch(console.error);
 
   $("toggle").addEventListener("click", () => {
     const hidden = !$("shortcuts").classList.contains("off");
@@ -160,9 +205,11 @@ async function main() {
   $("next").addEventListener("click", async () => {
     const btn = $("next");
     btn.classList.add("spinning");
+    wantUpdate = true;
     try {
       await browser.runtime.sendMessage({ type: "refresh", force: true });
     } catch (e) {
+      wantUpdate = false;
       console.error(e);
     } finally {
       btn.classList.remove("spinning");

@@ -41,6 +41,10 @@ function setStatus(text, isError = false) {
     input.addEventListener("change", () => updateSettings({ source: input.value }));
   }
 
+  const interval = $("interval");
+  interval.value = settings.interval ?? "daily";
+  interval.addEventListener("change", () => updateSettings({ interval: interval.value }));
+
   $("custom-urls").value = (settings.customUrls ?? [])
     .map(({ url, title }) => (title ? `${url}  ${title}` : url))
     .join("\n");

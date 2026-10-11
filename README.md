@@ -4,7 +4,7 @@ Firefox extension that replaces the new tab page with a daily background image,
 from **Windows Spotlight** (Windows 11 desktop API) or **Bing image of the day**.
 Pick the source in about:addons → the extension → Options.
 
-- A new image is fetched once per day (checked hourly, on startup, and when a new tab opens).
+- The image changes every new tab, hourly, daily (default), weekly or never (Options page).
 - The image is stored in the extension's Cache Storage, so new tabs load instantly and work offline.
 - Shows the same shortcuts as Firefox's own new tab (pinned + frequently visited); the grid button hides them.
 - Source: Windows Spotlight, Bing, or your own list of image URLs (Options page).

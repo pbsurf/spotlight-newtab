@@ -1,11 +1,8 @@
 :root { color-scheme: dark; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 14px/1.4 system-ui, sans-serif; color: #fff; }
-#bg {
-  position: fixed; inset: 0;
-  background: center / cover no-repeat;
-  opacity: 0; transition: opacity .4s ease;
-}
-#bg.loaded { opacity: 1; }
+.bg { position: fixed; inset: 0; background: center / cover no-repeat; }
+.bg.fading { opacity: 0; transition: opacity .4s ease; }
+.bg.fading.in { opacity: 1; }
 
 /* Shortcuts, laid out like Firefox's: 8 per row, centered in the upper part. */
 #shortcuts {
