@@ -1,7 +1,8 @@
 import * as spotlight from "./sources/spotlight.js";
 import * as bing from "./sources/bing.js";
+import * as custom from "./sources/custom.js";
 
-const SOURCES = { spotlight, bing };
+const SOURCES = { spotlight, bing, custom };
 const CACHE_NAME = "images";
 const ALARM = "refresh";
 
@@ -9,14 +10,20 @@ function today() {
   return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local time
 }
 
+// Always re-fetched: a custom URL may serve a different image each time.
 async function cacheImage(url) {
-  const cache = await caches.open(CACHE_NAME);
-  if (await cache.match(url)) return;
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-cache" });
   if (!res.ok) throw new Error(`Image HTTP ${res.status}`);
-  // The CDN serves JPEGs as text/plain; store them with a proper image type.
   const blob = await res.blob();
+  // Make sure it is actually an image before replacing the current one.
+  try {
+    (await createImageBitmap(blob)).close();
+  } catch {
+    throw new Error(`Not an image: ${url}`);
+  }
+  // The Spotlight CDN serves JPEGs as text/plain; store them with a proper image type.
   const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
+  const cache = await caches.open(CACHE_NAME);
   await cache.put(url, new Response(blob, { headers: { "Content-Type": type } }));
 }
 
@@ -35,7 +42,7 @@ async function refresh({ force = false } = {}) {
 
   const source = SOURCES[sourceName] ?? spotlight;
   // A forced refresh on the same day means "give me a different one".
-  const image = await source.fetchLatest({ random: force && current?.date === today() });
+  const image = await source.fetchLatest({ random: force && current?.date === today(), current });
   await cacheImage(image.imageUrl);
 
   const next = { ...image, date: today(), fetchedAt: Date.now() };
@@ -46,10 +53,12 @@ async function refresh({ force = false } = {}) {
   return next;
 }
 
-let inflight = null;
+// Run refreshes one at a time; unforced ones return early once today's image exists.
+let queue = Promise.resolve();
 function refreshOnce(opts) {
-  inflight ??= refresh(opts).finally(() => (inflight = null));
-  return inflight;
+  const run = queue.then(() => refresh(opts));
+  queue = run.catch(() => {});
+  return run;
 }
 
 browser.runtime.onInstalled.addListener(() => refreshOnce().catch(console.error));

@@ -36,16 +36,34 @@ async function render(img) {
   const learn = $("learn");
   learn.hidden = !img.link;
   if (img.link) learn.href = img.link;
+  $("hover-label").textContent = img.caption || img.title;
   $("info-btn").hidden = false;
 }
 
-// The same list Firefox's own new tab shows (pinned + frequently visited).
-async function renderShortcuts() {
+const hostOf = (url) => new URL(url).hostname.replace(/^www\./, "");
+
+async function getSites(count) {
   const sites = await browser.topSites.get({ newtab: true, includeFavicon: true });
+  if (sites.length >= count) return sites.slice(0, count);
+  // Firefox's list may be capped at its own row setting; top up from history.
+  const seen = new Set(sites.map((s) => hostOf(s.url)));
+  const more = await browser.topSites.get({ limit: count * 2, onePerDomain: true, includeFavicon: true });
+  for (const s of more) {
+    if (sites.length >= count) break;
+    if (seen.has(hostOf(s.url))) continue;
+    seen.add(hostOf(s.url));
+    sites.push(s);
+  }
+  return sites;
+}
+
+// The same list Firefox's own new tab shows (pinned + frequently visited).
+async function renderShortcuts(rows) {
+  const sites = await getSites(rows * 8);
   const nav = $("shortcuts");
   nav.replaceChildren(
-    ...sites.slice(0, 16).map((site) => {
-      const host = new URL(site.url).hostname.replace(/^www\./, "");
+    ...sites.map((site) => {
+      const host = hostOf(site.url);
       const a = document.createElement("a");
       a.className = "tile";
       a.href = site.url;
@@ -83,10 +101,10 @@ function applyShortcutsHidden(hidden) {
 }
 
 async function main() {
-  const { current, settings, hideShortcuts = false } =
-    await browser.storage.local.get(["current", "settings", "hideShortcuts"]);
+  const { current, settings, hideShortcuts = false, shortcutRows = 1 } =
+    await browser.storage.local.get(["current", "settings", "hideShortcuts", "shortcutRows"]);
   applyShortcutsHidden(hideShortcuts);
-  renderShortcuts().catch(console.error);
+  renderShortcuts(shortcutRows).catch(console.error);
   await render(current);
 
   browser.storage.onChanged.addListener((changes, area) => {
@@ -95,6 +113,7 @@ async function main() {
     if (changes.current?.newValue) render(changes.current.newValue);
     // Keep the shortcuts toggle in sync across open tabs.
     if (changes.hideShortcuts) applyShortcutsHidden(!!changes.hideShortcuts.newValue);
+    if (changes.shortcutRows) renderShortcuts(changes.shortcutRows.newValue ?? 1).catch(console.error);
   });
 
   // Stale, missing, or from another source? Ask the background to fetch.

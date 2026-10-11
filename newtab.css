@@ -47,6 +47,18 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font: 
   backdrop-filter: blur(6px); opacity: .75; transition: opacity .15s, background .15s;
 }
 .corner button:hover { opacity: 1; background: rgba(0,0,0,.5); }
+/* Name/location label shown while hovering the "i" button (not while the panel is open). */
+.corner.left { align-items: center; }
+#hover-label {
+  max-width: min(60ch, calc(100vw - 80px)); padding: 6px 10px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: rgba(20,20,20,.7); backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.2); border-radius: 8px;
+  opacity: 0; transform: translateX(-4px); pointer-events: none;
+  transition: opacity .15s ease, transform .15s ease;
+}
+#info-btn:is(:hover, :focus-visible) + #hover-label:not(:empty) { opacity: 1; transform: none; }
+#info:popover-open ~ .corner #hover-label { opacity: 0; }
 #info-btn i { font: italic 600 18px/1 Georgia, "Times New Roman", serif; }
 #toggle.off { opacity: .45; }
 #next.spinning { animation: spin 1s linear infinite; }
