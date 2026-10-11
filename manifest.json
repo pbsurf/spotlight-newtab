@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Daily Image New Tab",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Shows a daily image (Windows Spotlight or Bing) as the new tab background.",
   "browser_specific_settings": {
     "gecko": {
