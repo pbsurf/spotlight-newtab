@@ -21,7 +21,7 @@ function isFresh(current, interval, newTab) {
     case "hourly": return Date.now() - current.fetchedAt < HOUR;
     case "weekly": return daysBetween(current.date, today()) < 7;
     case "never": return true;
-    default: return current.date === today(); // daily
+    default: return Date.now() - current.fetchedAt < 24 * HOUR; // daily
   }
 }
 
