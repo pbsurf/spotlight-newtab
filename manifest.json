@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "spotlight-newtab",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "New tab page with a daily background image from Windows Spotlight, Bing, or your own image URLs.",
   "browser_specific_settings": {
     "gecko": {
